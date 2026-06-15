@@ -74,44 +74,42 @@ Always this exact string, on its own line, before and after the results block:
 
 ### Results block
 
-**Rules are always output in two groups, in this order:**
-1. All PASS rules first
-2. Then all FAIL rules
-3. Then all WARN rules
+**Sorting rules — mandatory:**
+- All PASS lines first, then all FAIL lines, then all WARN lines
+- Within the PASS group: sort by rule ID alphabetically (PHP-001, PHP-002, CLEAN-001, ...)
+- Within the FAIL group: sort by line number ascending
+- Within the WARN group: sort by line number ascending
 
-**Each PASS line — exact format:**
-```
-✅ PASS  [ID]  Label
-```
-- Exactly ONE space between `✅` and `PASS`
-- Exactly TWO spaces between `PASS` and `[ID]`
-- Exactly TWO spaces between `]` and the label
-- No sub-lines for PASS
+**Each line uses one of these three templates. Copy the template exactly, replace the placeholders:**
 
-**Each FAIL line — exact format:**
+PASS template:
 ```
-❌ FAIL  [ID]  Label
-         └─ line N: `code excerpt`
+✅ PASS  [PHP-001]  Label of the rule
 ```
-- Exactly ONE space between `❌` and `FAIL`
-- Exactly TWO spaces between `FAIL` and `[ID]`
-- Exactly TWO spaces between `]` and the label
-- Sub-line indented with exactly 9 spaces then `└─`
-- Always include line number and code excerpt for `static` rules
-- For `tool` rules: include the command output summary instead of a line reference
-- Multiple sub-lines allowed, each on its own line with the same indentation
 
-**Each WARN line — exact format:**
+FAIL template (static):
 ```
-⚠️ WARN  [ID]  Label (non-blocking)
-         └─ line N: description
+❌ FAIL  [PHP-001]  Label of the rule
+         └─ line 42: `$x = null;`
 ```
-- Exactly ONE space between `⚠️` and `WARN`
-- Exactly TWO spaces between `WARN` and `[ID]`
-- Exactly TWO spaces between `]` and the label
-- Always append ` (non-blocking)` to the label
-- Sub-line indented with exactly 9 spaces then `└─`
-- Multiple sub-lines allowed
+
+FAIL template (tool — no line number):
+```
+❌ FAIL  [PHPSTAN-001]  Label of the rule
+         └─ command output summary
+```
+
+WARN template:
+```
+⚠️ WARN  [CLEAN-010]  Label of the rule (non-blocking)
+         └─ line 42: description
+```
+
+Rules:
+- The space pattern in the templates is the source of truth — reproduce it character for character
+- `(non-blocking)` is always appended to WARN labels, never to PASS or FAIL labels
+- Multiple `└─` sub-lines are allowed for the same rule, one per line, same indentation
+- Never add section headers between result lines
 
 ---
 
