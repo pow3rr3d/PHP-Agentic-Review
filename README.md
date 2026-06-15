@@ -1,122 +1,121 @@
-# /review — Code Review pour Claude Code
+# /review-php — Code Review for Claude Code
 
-Commande `/review` pour [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview) qui analyse le code stagé (`git add`) avant chaque commit et vérifie sa conformité à des standards de développement configurables.
+A `/review-php` command for [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview) that analyzes **all changed files** (staged and unstaged) and checks their compliance with configurable development standards.
 
 ---
 
-## Fonctionnement
+## Usage
 
 ```
-git add src/MonFichier.php
-/review
+/review-php
 ```
 
-Claude analyse le diff stagé, applique chaque règle définie dans `STANDARDS.md`, et produit un rapport structuré :
+Claude analyzes the full diff (`git diff HEAD`), applies every rule defined in `STANDARDS.md`, and generates a structured report:
 
 ```
 ╔══════════════════════════════════════════╗
 ║           🔍 CODE REVIEW REPORT          ║
 ╚══════════════════════════════════════════╝
 
-🌐 Standards : globaux (~/.claude/STANDARDS.md)
-📁 Fichiers analysés : 2 fichier(s)
+🌐 Standards: global (~/.claude/STANDARDS.md)
+📁 Files analyzed: 2 file(s)
    • src/Service/UserService.php
    • src/Repository/UserRepository.php
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-✅ PASS  [PHP-001]  Les booléens sont en majuscules (TRUE / FALSE)
-❌ FAIL  [PHP-002]  NULL est en majuscules
-         └─ Détail : ligne 42 — `if ($value === null)`
-✅ PASS  [CLEAN-001]  Pas de TODO dans le code commité
-⚠️ WARN  [STYLE-001]  Les méthodes PHP font moins de 50 lignes
-         └─ Suggestion : UserService::process() — 67 lignes
+✅ PASS  [PHP-001]  Booleans are uppercase (TRUE / FALSE)
+❌ FAIL  [PHP-002]  NULL is uppercase
+         └─ Detail: line 42 — `if ($value === null)`
+✅ PASS  [CLEAN-001]  No TODO in code
+⚠️ WARN  [STYLE-001]  PHP methods under 50 lines
+         └─ Suggestion: UserService::process() — 67 lines
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📊 RÉSULTAT FINAL
-   ✅ Réussis  : 3
-   ❌ Échoués  : 1
-   ⚠️  Warnings : 1
+📊 FINAL RESULT
+   ✅ Passed  : 3
+   ❌ Failed  : 1
+   ⚠️  Warnings: 1
 
-→ Statut : ❌ À CORRIGER AVANT COMMIT
+→ Status: ❌ FIX BEFORE COMMIT
 ```
 
 ---
 
 ## Installation
 
-### Installation globale (recommandée)
+### Global installation (recommended)
 
-Disponible dans **tous tes projets** :
+Available across **all your projects**:
 
 ```bash
-mkdir -p ~/.claude/skills/review
-cp SKILL.md ~/.claude/skills/review/SKILL.md
+mkdir -p ~/.claude/skills/review-php
+cp SKILL.md ~/.claude/skills/review-php/SKILL.md
 cp STANDARDS.md ~/.claude/STANDARDS.md
 ```
 
-### Installation locale (projet uniquement)
+### Local installation (current project only)
 
 ```bash
-mkdir -p .claude/skills/review
-cp SKILL.md .claude/skills/review/SKILL.md
+mkdir -p .claude/skills/review-php
+cp SKILL.md .claude/skills/review-php/SKILL.md
 cp STANDARDS.md .claude/STANDARDS.md
 ```
 
 ---
 
-## Structure des fichiers
+## File structure
 
 ```
-# Installation globale
+# Global installation
 ~/.claude/
-├── STANDARDS.md                 ← standards par défaut pour tous les projets
+├── STANDARDS.md                 ← default standards for all projects
 └── skills/
-    └── review/
-        └── SKILL.md             ← moteur de la commande (ne pas modifier)
+    └── review-php/
+        └── SKILL.md             ← command engine (do not modify)
 
-# Par projet (optionnel)
-mon-projet/
+# Per project (optional)
+my-project/
 └── .claude/
-    └── STANDARDS.md             ← standards locaux (remplace ou étend le global)
+    └── STANDARDS.md             ← local standards (replaces or extends global)
 ```
 
 ---
 
-## Gestion des standards par projet
+## Managing standards per project
 
-La commande charge les standards selon cette priorité :
+The command loads standards in this priority order:
 
-| Situation | Standards chargés | Affiché dans le rapport |
+| Situation | Standards loaded | Shown in report |
 |---|---|---|
-| Pas de `.claude/STANDARDS.md` local | `~/.claude/STANDARDS.md` | `🌐 Standards : globaux` |
-| `.claude/STANDARDS.md` local | Fichier local uniquement | `📁 Standards : locaux` |
-| `.claude/STANDARDS.md` avec `extends: global` | Global + local fusionnés | `🔀 Standards : globaux + override local` |
+| No local `.claude/STANDARDS.md` | `~/.claude/STANDARDS.md` | `🌐 Standards: global` |
+| Local `.claude/STANDARDS.md` | Local file only | `📁 Standards: local` |
+| Local `.claude/STANDARDS.md` with `extends: global` | Global + local merged | `🔀 Standards: global + local override` |
 
-### Mode `extends: global`
+### `extends: global` mode
 
-Ajoute `extends: global` en première ligne du `STANDARDS.md` local pour hériter des règles globales tout en les complétant ou les surchargeant :
+Add `extends: global` as the first line of the local `STANDARDS.md` to inherit all global rules while adding or overriding specific ones:
 
 ```markdown
 extends: global
 
-# Standards locaux — mon-projet-symfony
+# Local standards — my-symfony-project
 
-...règles supplémentaires ou overrides...
+...additional rules or overrides...
 ```
 
-En cas de conflit d'`id`, la règle **locale écrase la règle globale**.
+When two rules share the same `id`, the **local rule overrides the global one**.
 
 ---
 
-## Configurer les standards
+## Configuring standards
 
-Tout se passe dans `STANDARDS.md`. Chaque règle est un bloc YAML :
+Everything happens in `STANDARDS.md`. Each rule is a YAML block:
 
 ```yaml
 id: PHP-001
-label: "Les booléens sont en majuscules (TRUE / FALSE)"
+label: "Booleans are uppercase (TRUE / FALSE)"
 blocking: true
 type: static
 file_filter: "\.php$"
@@ -124,39 +123,39 @@ pattern: "\\b(true|false)\\b"
 match_is_error: true
 ```
 
-### Champs disponibles
+### Available fields
 
-| Champ | Description |
+| Field | Description |
 |---|---|
-| `id` | Identifiant unique (ex: `PHP-001`) |
-| `label` | Description affichée dans le rapport |
-| `blocking` | `true` = bloque le commit si la règle échoue |
-| `type` | Type de vérification : `static`, `tool`, ou `semantic` |
-| `file_filter` | Optionnel — restreindre aux fichiers matchant ce pattern (ex: `\.php$`) |
+| `id` | Unique identifier (e.g. `PHP-001`) |
+| `label` | Description shown in the report |
+| `blocking` | `true` = blocks commit if the rule fails |
+| `type` | Verification type: `static`, `tool`, or `semantic` |
+| `file_filter` | Optional — restrict to files matching this pattern (e.g. `\.php$`) |
 
-### Les 3 types de vérification
+### The 3 verification types
 
-#### `static` — Grep/regex sur le diff
+#### `static` — Grep/regex on the diff
 
-Recherche un pattern dans les lignes ajoutées du diff.
+Searches for a pattern in added lines of the diff.
 
 ```yaml
 id: CLEAN-001
-label: "Pas de TODO dans le code commité"
+label: "No TODO in code"
 blocking: true
 type: static
 pattern: "TODO"
-match_is_error: true   # true = trouver le pattern est une erreur
-                       # false = ne pas trouver le pattern est une erreur
+match_is_error: true   # true = finding the pattern is an error
+                       # false = not finding the pattern is an error
 ```
 
-#### `tool` — Commande shell
+#### `tool` — Shell command
 
-Exécute une commande depuis la racine du projet. Succès si le code de retour est 0. Si l'outil n'est pas installé, la règle passe en `⚠️ WARN` non bloquant.
+Runs a command from the project root. Success if exit code is 0. If the tool is not installed, the rule becomes a non-blocking `⚠️ WARN`.
 
 ```yaml
 id: PHPSTAN-001
-label: "0 erreur PHPStan"
+label: "0 PHPStan errors"
 blocking: true
 type: tool
 file_filter: "\.php$"
@@ -164,57 +163,57 @@ command: "vendor/bin/phpstan analyse --no-progress --error-format=table"
 command_success: exit_0
 ```
 
-#### `semantic` — Analyse par Claude
+#### `semantic` — Analysis by Claude
 
-Claude analyse lui-même le diff selon les instructions du prompt. Le prompt doit retourner un JSON `{"found": bool, "occurrences": [...]}`.
+Claude analyzes the diff itself based on the prompt instructions. The prompt must return a JSON `{"found": bool, "occurrences": [...]}`.
 
 ```yaml
 id: SEC-001
-label: "Pas de clé API ou token en dur"
+label: "No hardcoded API key or token"
 blocking: true
 type: semantic
 prompt: |
-  Analyse le diff ci-dessous. Cherche des secrets potentiels : clés API, tokens,
-  mots de passe, credentials en dur (pas dans des fichiers .env ou de config exemples).
-  Réponds UNIQUEMENT par un JSON: {"found": true/false, "occurrences": ["ligne X: description"]}.
+  Analyze the diff below. Look for potential secrets: API keys, tokens,
+  passwords, hardcoded credentials (not in .env or example config files).
+  Reply ONLY with a JSON: {"found": true/false, "occurrences": ["line X: description"]}.
 ```
 
 ---
 
-## Standards inclus par défaut
+## Default standards
 
-| ID | Règle | Type | Bloquant |
+| ID | Rule | Type | Blocking |
 |---|---|---|---|
-| `PHP-001` | Booléens en majuscules (`TRUE` / `FALSE`) | static | ✅ |
-| `PHP-002` | `NULL` en majuscules | static | ✅ |
-| `PHP-003` | Pas de `var_dump()` | static | ✅ |
-| `PHP-004` | Pas de `print_r()` | static | ✅ |
-| `PHP-005` | Pas de `die()` / `exit()` | static | ⚠️ |
-| `PHPSTAN-001` | 0 erreur PHPStan | tool | ✅ |
-| `CLEAN-001` | Pas de `TODO` | static | ✅ |
-| `CLEAN-002` | Pas de `FIXME` | static | ✅ |
-| `CLEAN-003` | Pas de `HACK` | static | ⚠️ |
-| `CLEAN-004` | Pas de code commenté | semantic | ⚠️ |
-| `SEC-001` | Pas de secrets en dur | semantic | ✅ |
-| `SEC-002` | Pas d'injection SQL par concaténation | static | ✅ |
-| `STYLE-001` | Méthodes PHP < 50 lignes | semantic | ⚠️ |
+| `PHP-001` | Booleans uppercase (`TRUE` / `FALSE`) | static | ✅ |
+| `PHP-002` | `NULL` uppercase | static | ✅ |
+| `PHP-003` | No `var_dump()` | static | ✅ |
+| `PHP-004` | No `print_r()` | static | ✅ |
+| `PHP-005` | No `die()` / `exit()` | static | ⚠️ |
+| `PHPSTAN-001` | 0 PHPStan errors | tool | ✅ |
+| `CLEAN-001` | No `TODO` | static | ✅ |
+| `CLEAN-002` | No `FIXME` | static | ✅ |
+| `CLEAN-003` | No `HACK` | static | ⚠️ |
+| `CLEAN-004` | No commented-out code | semantic | ⚠️ |
+| `SEC-001` | No hardcoded secrets | semantic | ✅ |
+| `SEC-002` | No SQL injection via concatenation | static | ✅ |
+| `STYLE-001` | PHP methods under 50 lines | semantic | ⚠️ |
 
 ---
 
-## Ajouter une règle
+## Adding a rule
 
-1. Ouvre `~/.claude/STANDARDS.md` (ou `.claude/STANDARDS.md` dans ton projet)
-2. Copie un bloc YAML existant du même type
-3. Attribue un `id` unique
-4. Pour `type: static` : teste ta regex sur [regex101.com](https://regex101.com) en mode PHP
-5. Pour `type: tool` : vérifie que la commande est exécutable depuis la racine du projet
-6. Pour `type: semantic` : le prompt doit impérativement retourner `{"found": bool, "occurrences": [...]}`
+1. Open `~/.claude/STANDARDS.md` (or `.claude/STANDARDS.md` in your project)
+2. Copy an existing YAML block of the same type
+3. Assign a unique `id`
+4. For `type: static`: test your regex on [regex101.com](https://regex101.com) in PHP mode
+5. For `type: tool`: make sure the command runs from the project root
+6. For `type: semantic`: the prompt must return `{"found": bool, "occurrences": [...]}`
 
 ---
 
-## Comportement
+## Behavior
 
-- La commande ne modifie **jamais** de fichier — review uniquement
-- Seuls les fichiers stagés (`git add`) sont analysés, pas le reste du projet
-- Un standard `blocking: true` qui échoue passe le statut final en ❌
-- Un outil manquant (`type: tool`) donne un `⚠️ WARN` non bloquant, jamais une erreur fatale
+- The command **never modifies any file** — review only
+- All changes are analyzed (`git diff HEAD`), both staged and unstaged
+- A `blocking: true` rule that fails sets the final status to ❌
+- A missing `type: tool` command gives a non-blocking `⚠️ WARN`, never a fatal error
