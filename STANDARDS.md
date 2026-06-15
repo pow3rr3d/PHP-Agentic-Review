@@ -80,7 +80,7 @@ label: "0 PHPStan errors (level configured in phpstan.neon)"
 blocking: true
 type: tool
 file_filter: "\.php$"
-command: "vendor/bin/phpstan analyse --no-progress --error-format=table"
+command: "vendor/bin/phpstan analyse --memory-limit=1G --no-progress --error-format=table"
 command_success: exit_0
 ```
 
