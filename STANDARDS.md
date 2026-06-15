@@ -1,18 +1,18 @@
-# 📋 Standards globaux — /review
+# 📋 Global standards — /review-php
 
-Ces règles s'appliquent à **tous tes projets** par défaut.
+These rules apply to **all your projects** by default.
 
-Pour un projet spécifique, tu as deux options :
-- Créer `.claude/STANDARDS.md` dans le projet → remplace entièrement ces règles
-- Créer `.claude/STANDARDS.md` avec `extends: global` en en-tête → ajoute des règles par-dessus celles-ci
+For a specific project, you have two options:
+- Create `.claude/STANDARDS.md` in the project → fully replaces these rules
+- Create `.claude/STANDARDS.md` with `extends: global` at the top → adds rules on top of these
 
 ---
 
-## 🔴 PHP — Typage & Conventions
+## 🔴 PHP — Typing & Conventions
 
 ```yaml
 id: PHP-001
-label: "Les booléens sont en majuscules (TRUE / FALSE)"
+label: "Booleans are uppercase (TRUE / FALSE)"
 blocking: true
 type: static
 file_filter: "\.php$"
@@ -22,7 +22,7 @@ match_is_error: true
 
 ```yaml
 id: PHP-002
-label: "NULL est en majuscules"
+label: "NULL is uppercase"
 blocking: true
 type: static
 file_filter: "\.php$"
@@ -32,7 +32,7 @@ match_is_error: true
 
 ```yaml
 id: PHP-003
-label: "Pas de var_dump() dans le code commité"
+label: "No var_dump() in committed code"
 blocking: true
 type: static
 file_filter: "\.php$"
@@ -42,7 +42,7 @@ match_is_error: true
 
 ```yaml
 id: PHP-004
-label: "Pas de print_r() dans le code commité"
+label: "No print_r() in committed code"
 blocking: true
 type: static
 file_filter: "\.php$"
@@ -52,7 +52,7 @@ match_is_error: true
 
 ```yaml
 id: PHP-005
-label: "Pas de die() ou exit() sans raison explicite"
+label: "No die() or exit() without explicit reason"
 blocking: false
 type: static
 file_filter: "\.php$"
@@ -62,11 +62,11 @@ match_is_error: true
 
 ---
 
-## 🔴 Qualité — Analyse statique
+## 🔴 Quality — Static analysis
 
 ```yaml
 id: PHPSTAN-001
-label: "0 erreur PHPStan (niveau configuré dans phpstan.neon)"
+label: "0 PHPStan errors (level configured in phpstan.neon)"
 blocking: true
 type: tool
 file_filter: "\.php$"
@@ -76,11 +76,11 @@ command_success: exit_0
 
 ---
 
-## 🟡 Code propre — Marqueurs temporaires
+## 🟡 Clean code — Temporary markers
 
 ```yaml
 id: CLEAN-001
-label: "Pas de TODO dans le code commité"
+label: "No TODO in committed code"
 blocking: true
 type: static
 pattern: "TODO"
@@ -89,7 +89,7 @@ match_is_error: true
 
 ```yaml
 id: CLEAN-002
-label: "Pas de FIXME dans le code commité"
+label: "No FIXME in committed code"
 blocking: true
 type: static
 pattern: "FIXME"
@@ -98,7 +98,7 @@ match_is_error: true
 
 ```yaml
 id: CLEAN-003
-label: "Pas de HACK dans le code commité"
+label: "No HACK in committed code"
 blocking: false
 type: static
 pattern: "HACK"
@@ -107,35 +107,35 @@ match_is_error: true
 
 ```yaml
 id: CLEAN-004
-label: "Pas de code commenté (blocs suspects)"
+label: "No commented-out code (suspicious blocks)"
 blocking: false
 type: semantic
 file_filter: "\.php$"
 prompt: |
-  Analyse le diff ci-dessous. Repère les blocs de code PHP commenté
-  (lignes en // ou /* */ qui semblent être du code désactivé, pas de la documentation).
-  Signale chaque occurrence avec le numéro de ligne approximatif.
-  Réponds UNIQUEMENT par un JSON: {"found": true/false, "occurrences": ["ligne X: ..."]}.
+  Analyze the diff below. Look for commented-out PHP code blocks
+  (lines with // or /* */ that look like disabled code, not documentation).
+  Report each occurrence with the approximate line number.
+  Reply ONLY with a JSON: {"found": true/false, "occurrences": ["line X: ..."]}.
 ```
 
 ---
 
-## 🟡 Sécurité — Basique
+## 🟡 Security — Basics
 
 ```yaml
 id: SEC-001
-label: "Pas de clé API ou token en dur dans le code"
+label: "No hardcoded API key or token"
 blocking: true
 type: semantic
 prompt: |
-  Analyse le diff ci-dessous. Cherche des secrets potentiels : clés API, tokens,
-  mots de passe, credentials en dur dans le code (pas dans des fichiers .env ou de config exemples).
-  Réponds UNIQUEMENT par un JSON: {"found": true/false, "occurrences": ["ligne X: description"]}.
+  Analyze the diff below. Look for potential secrets: API keys, tokens,
+  passwords, hardcoded credentials (not in .env or example config files).
+  Reply ONLY with a JSON: {"found": true/false, "occurrences": ["line X: description"]}.
 ```
 
 ```yaml
 id: SEC-002
-label: "Pas de requête SQL construite par concaténation (injection)"
+label: "No SQL query built by concatenation (injection risk)"
 blocking: true
 type: static
 file_filter: "\.php$"
@@ -145,16 +145,16 @@ match_is_error: true
 
 ---
 
-## 🟢 Style & lisibilité
+## 🟢 Style & readability
 
 ```yaml
 id: STYLE-001
-label: "Les méthodes PHP font moins de 50 lignes"
+label: "PHP methods under 50 lines"
 blocking: false
 type: semantic
 file_filter: "\.php$"
 prompt: |
-  Analyse le diff ci-dessous. Identifie les méthodes PHP ajoutées ou modifiées
-  qui font plus de 50 lignes de code (hors commentaires et lignes vides).
-  Réponds UNIQUEMENT par un JSON: {"found": true/false, "occurrences": ["NomDeLaMethode: X lignes"]}.
+  Analyze the diff below. Identify added or modified PHP methods
+  that exceed 50 lines of code (excluding comments and blank lines).
+  Reply ONLY with a JSON: {"found": true/false, "occurrences": ["MethodName: X lines"]}.
 ```
