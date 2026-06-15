@@ -7,110 +7,151 @@ allowed-tools: Bash(git diff *), Bash(git status *), Bash(phpstan *), Bash(grep 
 
 # /review-php — Pre-commit Code Review
 
-## Goal
-Analyze **all changed files** (staged and unstaged) and check their compliance with the development standards defined in `STANDARDS.md`.
-
 ## Step 1 — Retrieve all changes
-
-Run the following commands to get every modified file and their diff:
 
 ```bash
 git status
 git diff HEAD
 ```
 
-If no changes are detected, display:
-> ⚠️ No changes found. Modify some files before using /review-php.
-
-Then stop execution.
+If no changes are detected, output exactly this and stop:
+```
+⚠️ No changes found. Modify some files before using /review-php.
+```
 
 ## Step 2 — Load standards (fallback: local → global)
 
-Look for standards in this priority order:
-
 ```bash
-# 1. Project-level local standards (high priority)
 test -f .claude/STANDARDS.md && cat .claude/STANDARDS.md
-
-# 2. Otherwise, global standards
 test -f ~/.claude/STANDARDS.md && cat ~/.claude/STANDARDS.md
 ```
 
-Loading rules:
-- If `.claude/STANDARDS.md` exists in the current project → use **this file only**
+- If `.claude/STANDARDS.md` exists → use this file only
 - Otherwise → use `~/.claude/STANDARDS.md`
-- If neither file exists → display an error and stop
+- If neither exists → output `❌ No STANDARDS.md found.` and stop
+- If local file starts with `extends: global` → merge both files (global first, local overrides by id)
 
-Always indicate the source at the top of the report:
-- `📁 Standards: local (.claude/STANDARDS.md)`
-- `🌐 Standards: global (~/.claude/STANDARDS.md)`
+## Step 3 — Run all checks silently
 
-### Hybrid standards (local + global)
+Run every rule in the loaded standards. Collect all results before producing any output. Do not stream partial results.
 
-If the local file starts with the following directive:
+## Step 4 — Output the report
 
-```yaml
-extends: global
-```
+Output the report using **this exact format, character by character**. No deviations.
 
-Then load **both files**: global rules first, local rules second. If two rules share the same `id`, the local rule overrides the global one. Indicate in the report:
-- `🔀 Standards: global + local override (.claude/STANDARDS.md)`
+---
 
-## Step 3 — Analyze each standard
-
-**Analyze all changed lines** returned by `git diff HEAD` — both staged and unstaged changes.
-
-For each rule defined in the loaded standards file, apply the check against the full diff.
-
-There are 3 verification types:
-
-**`type: static`** — Grep/regex on added lines of the diff (lines starting with `+`, excluding `+++`)
-- If `match_is_error: true` → finding the pattern = error
-- If `match_is_error: false` → not finding the pattern = error
-- If `file_filter` is set → only analyze files whose name matches this pattern
-
-**`type: tool`** — Shell command executed from the project root
-- `command_success: exit_0` → success if exit code = 0
-- If the command is missing or fails to run → `⚠️ WARN` (non-blocking) with the error message
-
-**`type: semantic`** — LLM analysis of the diff
-- Apply the `prompt` defined in the rule to the full diff content
-- The prompt must return a JSON: `{"found": true/false, "occurrences": ["description..."]}`
-- `found: true` = the rule detected a problem
-
-## Step 4 — Generate the report
+### Header block
 
 ```
 ╔══════════════════════════════════════════╗
 ║           🔍 CODE REVIEW REPORT          ║
 ╚══════════════════════════════════════════╝
-
-🌐 Standards: global (~/.claude/STANDARDS.md)   ← or local, or hybrid
-📁 Files analyzed: X file(s)
-   • src/Service/MyService.php
-   • ...
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-✅ PASS  [PHP-001]  Booleans are uppercase (TRUE / FALSE)
-❌ FAIL  [PHP-002]  NULL is uppercase
-         └─ Detail: line 42 — `if ($value === null)`
-⚠️ WARN  [STYLE-001]  PHP methods under 50 lines (non-blocking)
-         └─ Suggestion: MyService::process() — 67 lines
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📊 FINAL RESULT
-   ✅ Passed  : X
-   ❌ Failed  : X  ← BLOCKING
-   ⚠️  Warnings: X
-
-→ Status: ✅ READY TO COMMIT  |  ❌ FIX BEFORE COMMIT
 ```
 
-## Behavior rules
+One blank line, then the standards source on one line:
+- `🌐 Standards: global (~/.claude/STANDARDS.md)`
+- `📁 Standards: local (.claude/STANDARDS.md)`
+- `🔀 Standards: global + local override (.claude/STANDARDS.md)`
 
-- **Never** modify any file automatically — review only
-- Standards marked `blocking: true` set the final status to ❌
-- Always display the line number and code excerpt for `static` errors
-- If a `type: tool` command is not installed → `⚠️ WARN` non-blocking, never a fatal error
+One blank line, then the file list:
+```
+📁 Files analyzed: N file(s)
+   • path/to/file.php
+   • path/to/other.php
+```
+
+---
+
+### Separator
+
+Always this exact string, on its own line, before and after the results block:
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+---
+
+### Results block
+
+**Rules are always output in two groups, in this order:**
+1. All PASS rules first
+2. Then all FAIL rules
+3. Then all WARN rules
+
+**Each PASS line — exact format:**
+```
+✅ PASS  [ID]  Label
+```
+- Two spaces between `PASS` and `[ID]`
+- Two spaces between `]` and the label
+- No sub-lines for PASS
+
+**Each FAIL line — exact format:**
+```
+❌ FAIL  [ID]  Label
+         └─ line N: `code excerpt`
+```
+- Two spaces between `FAIL` and `[ID]`
+- Two spaces between `]` and the label
+- Sub-line indented with exactly 9 spaces then `└─`
+- Always include line number and code excerpt for `static` rules
+- For `tool` rules: include the command output summary instead of a line reference
+- Multiple sub-lines allowed, each on its own line with the same indentation
+
+**Each WARN line — exact format:**
+```
+⚠️ WARN  [ID]  Label (non-blocking)
+         └─ line N: description
+```
+- Two spaces between `WARN` and `[ID]`
+- Two spaces between `]` and the label
+- Always append ` (non-blocking)` to the label
+- Sub-line indented with exactly 9 spaces then `└─`
+- Multiple sub-lines allowed
+
+---
+
+### Footer block
+
+Separator line, then:
+```
+📊 FINAL RESULT
+   ✅ Passed  : N
+   ❌ Failed  : N
+   ⚠️  Warnings: N
+```
+
+One blank line, then status — exactly one of:
+```
+→ Status: ✅ READY TO COMMIT
+```
+```
+→ Status: ❌ FIX BEFORE COMMIT
+```
+
+If status is ❌, add one blank line then a summary block:
+```
+N blocking issue(s) to resolve:
+1. file.php line N — description of fix
+2. file.php line N — description of fix
+```
+
+If there are also warnings, add one blank line then:
+```
+N non-blocking warning(s):
+1. description
+```
+
+---
+
+## Strict output rules
+
+- **Never** add section headers (no `🔴 PHP`, no `🟡 Clean code`, etc.) inside the results block
+- **Never** mix PASS / FAIL / WARN — always three separate groups in order
+- **Never** output anything between the header block and the first separator
+- **Never** output anything between the last separator and the footer block
+- **Never** modify any file
+- **Never** stream partial output — complete all checks first, then output the full report at once
+- A `blocking: true` rule that fails → status is ❌
+- A missing or crashed `type: tool` → always ⚠️ WARN, never ❌ FAIL
