@@ -25,11 +25,12 @@ Claude analyzes the full diff (`git diff HEAD`), applies every rule defined in `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ✅ PASS  [PHP-001]  Booleans are uppercase (TRUE / FALSE)
-❌ FAIL  [PHP-002]  NULL is uppercase
-         └─ Detail: line 42 — `if ($value === null)`
-✅ PASS  [CLEAN-001]  No TODO in code
-⚠️ WARN  [STYLE-001]  PHP methods under 50 lines
-         └─ Suggestion: UserService::process() — 67 lines
+✅ PASS  [PHP-002]  NULL is uppercase
+✅ PASS  [CLEAN-001]  No TODO in committed code
+❌ FAIL  [PHP-003]  No var_dump() in committed code
+         └─ line 12: `var_dump($user);`
+⚠️ WARN  [STYLE-001]  PHP methods under 50 lines (non-blocking)
+         └─ line 34: UserService::process() — 67 lines
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -39,6 +40,12 @@ Claude analyzes the full diff (`git diff HEAD`), applies every rule defined in `
    ⚠️  Warnings: 1
 
 → Status: ❌ FIX BEFORE COMMIT
+
+1 blocking issue(s) to resolve:
+1. UserService.php line 12 — remove var_dump($user)
+
+1 non-blocking warning(s):
+1. UserService::process() is 67 lines — consider splitting it
 ```
 
 ---
@@ -141,7 +148,7 @@ Searches for a pattern in added lines of the diff.
 
 ```yaml
 id: CLEAN-001
-label: "No TODO in code"
+label: "No TODO in committed code"
 blocking: true
 type: static
 pattern: "TODO"
@@ -155,7 +162,7 @@ Runs a command from the project root. Success if exit code is 0. If the tool is 
 
 ```yaml
 id: PHPSTAN-001
-label: "0 PHPStan errors"
+label: "0 PHPStan errors (level configured in phpstan.neon)"
 blocking: true
 type: tool
 file_filter: "\.php$"
@@ -189,11 +196,26 @@ prompt: |
 | `PHP-003` | No `var_dump()` | static | ✅ |
 | `PHP-004` | No `print_r()` | static | ✅ |
 | `PHP-005` | No `die()` / `exit()` | static | ⚠️ |
+| `PHP-006` | No `dd()` / `dump()` (Symfony) | static | ✅ |
 | `PHPSTAN-001` | 0 PHPStan errors | tool | ✅ |
+| `TEST-001` | All unit tests pass (PHPUnit) | tool | ✅ |
+| `TEST-002` | New code has corresponding test file | semantic | ⚠️ |
 | `CLEAN-001` | No `TODO` | static | ✅ |
 | `CLEAN-002` | No `FIXME` | static | ✅ |
 | `CLEAN-003` | No `HACK` | static | ⚠️ |
 | `CLEAN-004` | No commented-out code | semantic | ⚠️ |
+| `CLEAN-005` | No magic numbers | semantic | ⚠️ |
+| `CLEAN-006` | No deeply nested code (max 3 levels) | semantic | ⚠️ |
+| `CLEAN-007` | Methods have a single responsibility | semantic | ⚠️ |
+| `CLEAN-008` | No functions with more than 3 parameters | semantic | ⚠️ |
+| `CLEAN-009` | No negative or double-negative conditionals | semantic | ⚠️ |
+| `CLEAN-010` | Meaningful names (no abbreviations) | semantic | ⚠️ |
+| `SOLID-S-001` | SRP — No mixed responsibilities | semantic | ⚠️ |
+| `SOLID-O-001` | OCP — No large switch/if-elseif chains | semantic | ⚠️ |
+| `SOLID-L-001` | LSP — Overridden methods respect parent contract | semantic | ⚠️ |
+| `SOLID-I-001` | ISP — No bloated interfaces | semantic | ⚠️ |
+| `SOLID-D-001` | DIP — No direct instantiation of concrete dependencies | static | ✅ |
+| `SOLID-D-002` | DIP — Dependencies typed against interfaces | semantic | ⚠️ |
 | `SEC-001` | No hardcoded secrets | semantic | ✅ |
 | `SEC-002` | No SQL injection via concatenation | static | ✅ |
 | `STYLE-001` | PHP methods under 50 lines | semantic | ⚠️ |
@@ -215,5 +237,7 @@ prompt: |
 
 - The command **never modifies any file** — review only
 - All changes are analyzed (`git diff HEAD`), both staged and unstaged
+- Results are output in three fixed groups: all PASS first, then FAIL, then WARN
+- Within each group, rules are sorted by line number ascending
 - A `blocking: true` rule that fails sets the final status to ❌
 - A missing `type: tool` command gives a non-blocking `⚠️ WARN`, never a fatal error
