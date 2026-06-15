@@ -83,8 +83,9 @@ Always this exact string, on its own line, before and after the results block:
 ```
 ✅ PASS  [ID]  Label
 ```
-- Two spaces between `PASS` and `[ID]`
-- Two spaces between `]` and the label
+- Exactly ONE space between `✅` and `PASS`
+- Exactly TWO spaces between `PASS` and `[ID]`
+- Exactly TWO spaces between `]` and the label
 - No sub-lines for PASS
 
 **Each FAIL line — exact format:**
@@ -92,8 +93,9 @@ Always this exact string, on its own line, before and after the results block:
 ❌ FAIL  [ID]  Label
          └─ line N: `code excerpt`
 ```
-- Two spaces between `FAIL` and `[ID]`
-- Two spaces between `]` and the label
+- Exactly ONE space between `❌` and `FAIL`
+- Exactly TWO spaces between `FAIL` and `[ID]`
+- Exactly TWO spaces between `]` and the label
 - Sub-line indented with exactly 9 spaces then `└─`
 - Always include line number and code excerpt for `static` rules
 - For `tool` rules: include the command output summary instead of a line reference
@@ -104,8 +106,9 @@ Always this exact string, on its own line, before and after the results block:
 ⚠️ WARN  [ID]  Label (non-blocking)
          └─ line N: description
 ```
-- Two spaces between `WARN` and `[ID]`
-- Two spaces between `]` and the label
+- Exactly ONE space between `⚠️` and `WARN`
+- Exactly TWO spaces between `WARN` and `[ID]`
+- Exactly TWO spaces between `]` and the label
 - Always append ` (non-blocking)` to the label
 - Sub-line indented with exactly 9 spaces then `└─`
 - Multiple sub-lines allowed
@@ -119,7 +122,7 @@ Separator line, then:
 📊 FINAL RESULT
    ✅ Passed  : N
    ❌ Failed  : N
-   ⚠️  Warnings: N
+   ⚠️ Warnings: N
 ```
 
 One blank line, then status — exactly one of:
@@ -136,6 +139,7 @@ N blocking issue(s) to resolve:
 1. file.php line N — description of fix
 2. file.php line N — description of fix
 ```
+Blocking issues must be listed **in ascending line number order**.
 
 If there are also warnings, add one blank line then:
 ```
