@@ -72,7 +72,7 @@ match_is_error: true
 
 ---
 
-## 🔴 Quality — Static analysis
+## 🔴 Quality — Static analysis & Tests
 
 ```yaml
 id: PHPSTAN-001
@@ -80,8 +80,31 @@ label: "0 PHPStan errors (level configured in phpstan.neon)"
 blocking: true
 type: tool
 file_filter: "\.php$"
-command: "vendor/bin/phpstan analyse --memory-limit=1G --no-progress --error-format=table"
+command: "vendor/bin/phpstan analyse --no-progress --error-format=table"
 command_success: exit_0
+```
+
+```yaml
+id: TEST-001
+label: "All unit tests pass (PHPUnit)"
+blocking: true
+type: tool
+command: "vendor/bin/phpunit --testsuit=unit --no-coverage"
+command_success: exit_0
+```
+
+```yaml
+id: TEST-002
+label: "New code has corresponding test file"
+blocking: false
+type: semantic
+file_filter: "\.php$"
+prompt: |
+  Analyze the diff below. Look for added or modified PHP classes that are NOT
+  test classes themselves (not in a /tests/ or /Test/ directory, not suffixed with Test.php)
+  and check whether a corresponding test file is mentioned anywhere in the diff.
+  Flag classes that introduce new behavior but have no visible test counterpart.
+  Reply ONLY with a JSON: {"found": true/false, "occurrences": ["ClassName: no test file found in diff"]}.
 ```
 
 ---
