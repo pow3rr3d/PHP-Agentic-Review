@@ -1,112 +1,116 @@
 ---
-name: review
+name: review-php
 command: /review-php
-description: Analyse le code stagé (git add) et vérifie la conformité aux standards du projet. Charge les standards locaux (.claude/STANDARDS.md) en priorité, sinon les standards globaux (~/.claude/STANDARDS.md).
-allowed-tools: Bash(git diff --staged *), Bash(git status *), Bash(phpstan *), Bash(grep *), Bash(find *), Bash(cat *), Bash(test *)
+description: Analyzes all changed files (staged + unstaged) and checks compliance with project standards. Loads local standards (.claude/STANDARDS.md) first, falls back to global standards (~/.claude/STANDARDS.md).
+allowed-tools: Bash(git diff *), Bash(git status *), Bash(phpstan *), Bash(grep *), Bash(find *), Bash(cat *), Bash(test *)
 ---
 
-# /review — Code Review avant commit
+# /review-php — Pre-commit Code Review
 
-## Objectif
-Analyser **uniquement les fichiers stagés** (`git add`) et vérifier leur conformité aux standards de développement.
+## Goal
+Analyze **all changed files** (staged and unstaged) and check their compliance with the development standards defined in `STANDARDS.md`.
 
-## Étape 1 — Récupérer les fichiers stagés
+## Step 1 — Retrieve all changes
+
+Run the following commands to get every modified file and their diff:
 
 ```bash
-git diff --staged --name-only
-git diff --staged
+git status
+git diff HEAD
 ```
 
-Si aucun fichier n'est stagé, affiche :
-> ⚠️ Aucun fichier stagé. Lance `git add <fichiers>` avant d'utiliser /review.
+If no changes are detected, display:
+> ⚠️ No changes found. Modify some files before using /review-php.
 
-Et stoppe l'exécution.
+Then stop execution.
 
-## Étape 2 — Charger les standards (fallback local → global)
+## Step 2 — Load standards (fallback: local → global)
 
-Cherche les standards dans cet ordre de priorité :
+Look for standards in this priority order:
 
 ```bash
-# 1. Standards locaux au projet (priorité haute)
+# 1. Project-level local standards (high priority)
 test -f .claude/STANDARDS.md && cat .claude/STANDARDS.md
 
-# 2. Sinon, standards globaux
+# 2. Otherwise, global standards
 test -f ~/.claude/STANDARDS.md && cat ~/.claude/STANDARDS.md
 ```
 
-Règles de chargement :
-- Si `.claude/STANDARDS.md` existe dans le projet courant → utilise **uniquement** ce fichier
-- Sinon → utilise `~/.claude/STANDARDS.md`
-- Si aucun fichier n'existe → affiche une erreur et stoppe
+Loading rules:
+- If `.claude/STANDARDS.md` exists in the current project → use **this file only**
+- Otherwise → use `~/.claude/STANDARDS.md`
+- If neither file exists → display an error and stop
 
-En tête du rapport, indique toujours la source chargée :
-- `📁 Standards : locaux (.claude/STANDARDS.md)`
-- `🌐 Standards : globaux (~/.claude/STANDARDS.md)`
+Always indicate the source at the top of the report:
+- `📁 Standards: local (.claude/STANDARDS.md)`
+- `🌐 Standards: global (~/.claude/STANDARDS.md)`
 
-### Standards hybrides (local + global)
+### Hybrid standards (local + global)
 
-Si le fichier local contient la directive suivante en en-tête :
+If the local file starts with the following directive:
 
 ```yaml
 extends: global
 ```
 
-Alors charge **les deux fichiers** : les règles globales d'abord, les règles locales ensuite. En cas de conflit d'`id`, la règle locale écrase la règle globale. Indique dans le rapport :
-- `🔀 Standards : globaux + override local (.claude/STANDARDS.md)`
+Then load **both files**: global rules first, local rules second. If two rules share the same `id`, the local rule overrides the global one. Indicate in the report:
+- `🔀 Standards: global + local override (.claude/STANDARDS.md)`
 
-## Étape 3 — Analyser chaque standard
+## Step 3 — Analyze each standard
 
-Pour chaque règle définie dans le fichier de standards chargé, applique la vérification sur le diff stagé.
+**Analyze all changed lines** returned by `git diff HEAD` — both staged and unstaged changes.
 
-Les vérifications sont de 3 types :
+For each rule defined in the loaded standards file, apply the check against the full diff.
 
-**`type: static`** — Grep/regex sur les lignes ajoutées du diff (lignes commençant par `+`, hors `+++`)
-- Si `match_is_error: true` → trouver le pattern = erreur
-- Si `match_is_error: false` → ne pas trouver le pattern = erreur
-- Si `file_filter` est défini → n'analyser que les fichiers dont le nom matche ce pattern
+There are 3 verification types:
 
-**`type: tool`** — Exécution d'une commande shell depuis la racine du projet
-- `command_success: exit_0` → succès si code de retour = 0
-- Si la commande n'existe pas ou échoue à s'exécuter → `⚠️ WARN` (non bloquant) avec le message d'erreur
+**`type: static`** — Grep/regex on added lines of the diff (lines starting with `+`, excluding `+++`)
+- If `match_is_error: true` → finding the pattern = error
+- If `match_is_error: false` → not finding the pattern = error
+- If `file_filter` is set → only analyze files whose name matches this pattern
 
-**`type: semantic`** — Analyse LLM du diff
-- Applique le `prompt` défini dans la règle sur le contenu du diff
-- Le prompt doit retourner un JSON : `{"found": true/false, "occurrences": ["description..."]}`
-- `found: true` = la règle a détecté un problème
+**`type: tool`** — Shell command executed from the project root
+- `command_success: exit_0` → success if exit code = 0
+- If the command is missing or fails to run → `⚠️ WARN` (non-blocking) with the error message
 
-## Étape 4 — Produire le rapport
+**`type: semantic`** — LLM analysis of the diff
+- Apply the `prompt` defined in the rule to the full diff content
+- The prompt must return a JSON: `{"found": true/false, "occurrences": ["description..."]}`
+- `found: true` = the rule detected a problem
+
+## Step 4 — Generate the report
 
 ```
 ╔══════════════════════════════════════════╗
 ║           🔍 CODE REVIEW REPORT          ║
 ╚══════════════════════════════════════════╝
 
-🌐 Standards : globaux (~/.claude/STANDARDS.md)   ← ou locaux, ou hybrides
-📁 Fichiers analysés : X fichier(s)
+🌐 Standards: global (~/.claude/STANDARDS.md)   ← or local, or hybrid
+📁 Files analyzed: X file(s)
    • src/Service/MyService.php
    • ...
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-✅ PASS  [PHP-001]  Les booléens sont en majuscules (TRUE / FALSE)
-❌ FAIL  [PHP-002]  NULL est en majuscules
-         └─ Détail : ligne 42 — `if ($value === null)`
-⚠️ WARN  [STYLE-001]  Méthodes < 50 lignes (non bloquant)
-         └─ Suggestion : MyService::process() — 67 lignes
+✅ PASS  [PHP-001]  Booleans are uppercase (TRUE / FALSE)
+❌ FAIL  [PHP-002]  NULL is uppercase
+         └─ Detail: line 42 — `if ($value === null)`
+⚠️ WARN  [STYLE-001]  PHP methods under 50 lines (non-blocking)
+         └─ Suggestion: MyService::process() — 67 lines
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📊 RÉSULTAT FINAL
-   ✅ Réussis  : X
-   ❌ Échoués  : X  ← BLOQUANT
-   ⚠️  Warnings : X
+📊 FINAL RESULT
+   ✅ Passed  : X
+   ❌ Failed  : X  ← BLOCKING
+   ⚠️  Warnings: X
 
-→ Statut : ✅ PRÊT À COMMIT  |  ❌ À CORRIGER AVANT COMMIT
+→ Status: ✅ READY TO COMMIT  |  ❌ FIX BEFORE COMMIT
 ```
 
-## Règles de comportement
+## Behavior rules
 
-- Ne **jamais** modifier de fichier automatiquement — review uniquement
-- Les standards marqués `blocking: true` font passer le statut final en ❌
-- Toujours afficher le numéro de ligne et l'extrait de code pour les erreurs `static`
-- Si un outil (`type: tool`) n'est pas installé → `⚠️ WARN` non bloquant, jamais une erreur fatale
+- **Never** modify any file automatically — review only
+- Standards marked `blocking: true` set the final status to ❌
+- Always display the line number and code excerpt for `static` errors
+- If a `type: tool` command is not installed → `⚠️ WARN` non-blocking, never a fatal error
