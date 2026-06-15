@@ -1,17 +1,17 @@
 extends: global
 
-# 📋 Standards locaux — mon-projet-symfony
+# 📋 Local standards — my-symfony-project
 
-Ces règles s'ajoutent aux standards globaux (~/.claude/STANDARDS.md).
-Les règles avec le même `id` écrasent la règle globale correspondante.
+These rules are added on top of the global standards (~/.claude/STANDARDS.md).
+Rules sharing the same `id` override the corresponding global rule.
 
 ---
 
-## 🔴 Symfony — Conventions spécifiques
+## 🔴 Symfony — Project-specific conventions
 
 ```yaml
 id: SYM-001
-label: "Les services sont déclarés en snake_case dans services.yaml"
+label: "Services are declared in snake_case in services.yaml"
 blocking: true
 type: static
 file_filter: "services\.yaml$"
@@ -21,24 +21,24 @@ match_is_error: true
 
 ```yaml
 id: SYM-002
-label: "Pas d'injection par propriété publique (utiliser le constructeur)"
+label: "No dependency injection via public properties (use constructor instead)"
 blocking: true
 type: semantic
 file_filter: "\.php$"
 prompt: |
-  Analyse le diff. Cherche des injections de dépendances via propriétés publiques
-  (ex: `public MyService $service` sans constructeur).
-  Réponds UNIQUEMENT par un JSON: {"found": true/false, "occurrences": ["ligne X: ..."]}.
+  Analyze the diff. Look for dependency injections via public properties
+  (e.g. `public MyService $service` without a constructor).
+  Reply ONLY with a JSON: {"found": true/false, "occurrences": ["line X: ..."]}.
 ```
 
 ---
 
-## 🟡 Override d'une règle globale
+## 🟡 Global rule override
 
 ```yaml
-# Ici on rend CLEAN-001 non-bloquant pour ce projet (override de la règle globale)
+# Make CLEAN-001 non-blocking for this project (overrides the global rule)
 id: CLEAN-001
-label: "TODO dans le code (warning seulement pour ce projet)"
+label: "TODO in code (warning only for this project)"
 blocking: false
 type: static
 pattern: "TODO"
