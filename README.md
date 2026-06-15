@@ -54,6 +54,8 @@ Claude analyzes the full diff (`git diff HEAD`), applies every rule defined in `
 
 ### Global installation (recommended)
 
+First of all, clone this repository!
+
 Available across **all your projects**:
 
 ```bash
