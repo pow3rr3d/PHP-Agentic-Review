@@ -1,6 +1,6 @@
 ---
 name: review
-command: /review
+command: /review-php
 description: Analyse le code stagé (git add) et vérifie la conformité aux standards du projet. Charge les standards locaux (.claude/STANDARDS.md) en priorité, sinon les standards globaux (~/.claude/STANDARDS.md).
 allowed-tools: Bash(git diff --staged *), Bash(git status *), Bash(phpstan *), Bash(grep *), Bash(find *), Bash(cat *), Bash(test *)
 ---
